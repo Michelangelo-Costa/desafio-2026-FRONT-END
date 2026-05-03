@@ -70,6 +70,31 @@ export const speciesService = {
     return unwrap(res)
   },
 
+  async update(id: string, data: Partial<Omit<Species, 'id' | 'uniqueIdentifier'>>): Promise<Species> {
+    if (USE_MOCK) {
+      await simulateDelay(500)
+      const idx = mockSpecies.findIndex((s) => s.id === id)
+      if (idx === -1) throw new Error('Species not found')
+      mockSpecies[idx] = { ...mockSpecies[idx], ...data }
+      return mockSpecies[idx]
+    }
+    const { default: api } = await import('./api')
+    const res = await api.put(`/species/${id}`, data)
+    return unwrap(res)
+  },
+
+  async delete(id: string): Promise<void> {
+    if (USE_MOCK) {
+      await simulateDelay(400)
+      const idx = mockSpecies.findIndex((s) => s.id === id)
+      if (idx === -1) throw new Error('Species not found')
+      mockSpecies.splice(idx, 1)
+      return
+    }
+    const { default: api } = await import('./api')
+    await api.delete(`/species/${id}`)
+  },
+
   async getStats(): Promise<SpeciesStats> {
     if (USE_MOCK) {
       await simulateDelay()
