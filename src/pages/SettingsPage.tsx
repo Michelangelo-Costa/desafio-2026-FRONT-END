@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { Moon, Sun, Globe, Bell, Database, Shield } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
+import { useSettings } from '../contexts/SettingsContext'
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -29,27 +29,26 @@ function Section({ icon: Icon, title, children }: { icon: React.ElementType; tit
 
 function SettingRow({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div>
+    <div className="flex items-center justify-between py-2 gap-4">
+      <div className="min-w-0">
         <p className="text-sm font-medium text-siapesq-dark">{label}</p>
         {description && <p className="text-xs text-siapesq-muted mt-0.5">{description}</p>}
       </div>
-      {children}
+      <div className="flex-shrink-0">
+        {children}
+      </div>
     </div>
   )
 }
 
 export function SettingsPage() {
   const { theme, toggleTheme } = useTheme()
-  const [notifyEmail, setNotifyEmail] = useState(true)
-  const [notifyNew, setNotifyNew] = useState(true)
-  const [notifyReport, setNotifyReport] = useState(false)
-  const [compactView, setCompactView] = useState(false)
+  const { settings, update } = useSettings()
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-navy">Configurações</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-navy">Configurações</h1>
         <p className="text-sm text-siapesq-muted mt-0.5">Preferências e configurações do sistema</p>
       </div>
 
@@ -63,47 +62,59 @@ export function SettingsPage() {
         </SettingRow>
         <div className="h-px bg-siapesq-border" />
         <SettingRow label="Visualização Compacta" description="Reduz o espaçamento nas listas de espécies">
-          <Toggle enabled={compactView} onChange={setCompactView} />
+          <Toggle enabled={settings.compactView} onChange={(v) => update('compactView', v)} />
         </SettingRow>
       </Section>
 
       <Section icon={Globe} title="Idioma e Região">
         <SettingRow label="Idioma do sistema" description="Idioma exibido na interface">
-          <select className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal">
-            <option>Português (BR)</option>
-            <option>English</option>
-            <option>Español</option>
+          <select
+            value={settings.language}
+            onChange={(e) => update('language', e.target.value)}
+            className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal"
+          >
+            <option value="pt-BR">Português (BR)</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
           </select>
         </SettingRow>
         <div className="h-px bg-siapesq-border" />
         <SettingRow label="Formato de data" description="Como as datas são exibidas no sistema">
-          <select className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal">
-            <option>DD/MM/AAAA</option>
-            <option>MM/DD/YYYY</option>
-            <option>AAAA-MM-DD</option>
+          <select
+            value={settings.dateFormat}
+            onChange={(e) => update('dateFormat', e.target.value)}
+            className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal"
+          >
+            <option value="DD/MM/AAAA">DD/MM/AAAA</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+            <option value="AAAA-MM-DD">AAAA-MM-DD</option>
           </select>
         </SettingRow>
       </Section>
 
       <Section icon={Bell} title="Notificações">
         <SettingRow label="Notificações por e-mail" description="Receba atualizações importantes no seu e-mail">
-          <Toggle enabled={notifyEmail} onChange={setNotifyEmail} />
+          <Toggle enabled={settings.notifyEmail} onChange={(v) => update('notifyEmail', v)} />
         </SettingRow>
         <div className="h-px bg-siapesq-border" />
         <SettingRow label="Novas espécies cadastradas" description="Alerta quando outros pesquisadores adicionam espécies">
-          <Toggle enabled={notifyNew} onChange={setNotifyNew} />
+          <Toggle enabled={settings.notifyNew} onChange={(v) => update('notifyNew', v)} />
         </SettingRow>
         <div className="h-px bg-siapesq-border" />
         <SettingRow label="Relatórios semanais" description="Resumo semanal das atividades do sistema">
-          <Toggle enabled={notifyReport} onChange={setNotifyReport} />
+          <Toggle enabled={settings.notifyReport} onChange={(v) => update('notifyReport', v)} />
         </SettingRow>
       </Section>
 
       <Section icon={Database} title="Dados e Exportação">
         <SettingRow label="Formato de exportação padrão" description="Formato usado ao exportar dados de espécies">
-          <select className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal">
-            <option>CSV</option>
-            <option>JSON</option>
+          <select
+            value={settings.exportFormat}
+            onChange={(e) => update('exportFormat', e.target.value)}
+            className="rounded-xl border border-siapesq-border px-3 py-1.5 text-sm text-siapesq-dark bg-white focus:outline-none focus:border-teal"
+          >
+            <option value="CSV">CSV</option>
+            <option value="JSON">JSON</option>
           </select>
         </SettingRow>
       </Section>
