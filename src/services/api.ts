@@ -22,7 +22,13 @@ api.interceptors.response.use(
       authService.removeToken()
       window.location.href = '/login'
     }
-    const message = error.response?.data?.message || error.message || 'Erro inesperado'
+    const details = error.response?.data
+    const message =
+      details?.message ||
+      details?.error ||
+      (Array.isArray(details?.errors) ? details.errors.map((item: unknown) => String(item)).join(', ') : '') ||
+      error.message ||
+      'Erro inesperado'
     return Promise.reject(new Error(message))
   }
 )

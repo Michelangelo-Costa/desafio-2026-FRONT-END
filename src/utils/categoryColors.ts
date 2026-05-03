@@ -15,7 +15,7 @@ export const categoryLabels: Record<SpeciesCategory, string> = {
   Plant: 'Planta',
   Mammal: 'Mamífero',
   Reptile: 'Réptil',
-  Other: 'Outro',
+  Other: 'Outra categoria',
 }
 
 export const chartColors: Record<string, string> = {
