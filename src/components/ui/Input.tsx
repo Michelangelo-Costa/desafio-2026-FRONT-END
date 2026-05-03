@@ -15,9 +15,9 @@ export function Input({ label, error, icon, valid, className = '', ...props }: I
     : 'border-siapesq-border focus:border-teal focus:ring-teal/20'
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label className={`text-sm font-medium ${error ? 'text-red-600' : 'text-siapesq-dark'}`}>
+        <label className={`text-sm font-semibold ${error ? 'text-red-600' : 'text-siapesq-dark'}`}>
           {label}
         </label>
       )}
@@ -43,7 +43,7 @@ export function Input({ label, error, icon, valid, className = '', ...props }: I
         )}
         <input
           {...props}
-          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-siapesq-dark placeholder:text-siapesq-muted focus:outline-none focus:ring-2 transition-all ${icon ? 'pl-9' : ''} ${valid || error ? 'pr-10' : ''} ${borderClass} ${className}`}
+          className={`w-full min-h-12 rounded-xl border bg-white px-4 py-3 text-base sm:text-sm text-siapesq-dark placeholder:text-siapesq-muted focus:outline-none focus:ring-2 transition-all ${icon ? 'pl-9' : ''} ${valid || error ? 'pr-10' : ''} ${borderClass} ${className}`}
         />
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import { Link } from 'react-router-dom'
-import { Layers } from 'lucide-react'
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet'
+import { Link, useNavigate } from 'react-router-dom'
+import { Layers, MapPin, PlusCircle, X } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet.heat'
 import { speciesService } from '../services/speciesService'
 import type { Species, SpeciesCategory } from '../types/species'
 import { categoryLabels } from '../utils/categoryColors'
 import { PageSpinner } from '../components/ui/Spinner'
+
+const BASE_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+const BASE_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -24,6 +27,17 @@ const markerColors: Record<SpeciesCategory, string> = {
   Reptile: '#7B6FAB',
   Other: '#8899AA',
 }
+
+const HEATMAP_GRADIENT = {
+  0.18: '#D8F6F1',
+  0.35: '#5EEAD4',
+  0.55: '#14B8A6',
+  0.72: '#8DC63F',
+  0.88: '#FACC15',
+  1.0: '#EF4444',
+}
+
+const HEATMAP_LEGEND = 'linear-gradient(to right, #D8F6F1, #5EEAD4, #14B8A6, #8DC63F, #FACC15, #EF4444)'
 
 function createIcon(category: SpeciesCategory) {
   const color = markerColors[category]
@@ -52,24 +66,19 @@ function HeatmapLayer({ species }: { species: Species[] }) {
   useEffect(() => {
     const points = species
       .filter((s) => s.latitude !== 0 || s.longitude !== 0)
-      .map((s) => [s.latitude, s.longitude, s.abundance ?? 1] as [number, number, number])
+      .map((s) => {
+        const abundance = Number.isFinite(s.abundance) ? Number(s.abundance) : 1
+        const intensity = Math.min(1, Math.max(0.25, abundance / 10))
+        return [s.latitude, s.longitude, intensity] as [number, number, number]
+      })
     if (points.length === 0) return
-    const maxVal = Math.max(...points.map((p) => p[2]!))
     const heat = (L as any).heatLayer(points, {
-      radius: 50,
-      blur: 35,
-      maxZoom: 12,
-      minOpacity: 0.6,
-      max: maxVal * 0.3,
-      gradient: {
-        0.0: '#000080',
-        0.2: '#0000FF',
-        0.35: '#00FFFF',
-        0.5: '#00FF00',
-        0.65: '#FFFF00',
-        0.8: '#FF8000',
-        1.0: '#FF0000',
-      },
+      radius: 26,
+      blur: 20,
+      maxZoom: 9,
+      minOpacity: 0.24,
+      max: 1,
+      gradient: HEATMAP_GRADIENT,
     })
     heat.addTo(map)
     return () => { map.removeLayer(heat) }
@@ -77,7 +86,95 @@ function HeatmapLayer({ species }: { species: Species[] }) {
   return null
 }
 
+function MapCreateEvents({ onPick }: { onPick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(event) {
+      onPick(event.latlng.lat, event.latlng.lng)
+    },
+  })
+
+  return null
+}
+
+function MapResizeFix() {
+  const map = useMap()
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      map.invalidateSize()
+    }, 120)
+
+    return () => window.clearTimeout(timer)
+  }, [map])
+
+  return null
+}
+
 // ─── NASA GIBS ────────────────────────────────────────────────────────────────
+
+function MapInfoPanel({
+  mode,
+  activeSat,
+  date,
+}: {
+  mode: MapMode
+  activeSat: GibsLayerDef | null
+  date: string
+}) {
+  return (
+    <div className="absolute inset-x-3 bottom-3 z-[1000] rounded-2xl border border-siapesq-border bg-white/95 p-3 shadow-card backdrop-blur sm:left-4 sm:right-auto sm:w-[430px] sm:p-4">
+      <div className="flex flex-col gap-3">
+        <div className="min-w-0">
+          {mode === 'heatmap' ? (
+            <>
+              <p className="text-xs font-extrabold text-navy">Densidade de registros</p>
+              <div className="mt-2 h-2.5 rounded-full" style={{ background: HEATMAP_LEGEND }} />
+              <div className="mt-1 flex justify-between text-[10px] text-siapesq-muted">
+                <span>Baixa</span>
+                <span>Alta</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-extrabold text-navy">Legenda</p>
+              <div className="mt-2 flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                {Object.entries(markerColors).map(([cat, color]) => (
+                  <span key={cat} className="inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-siapesq-dark">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                    {categoryLabels[cat as SpeciesCategory]}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {activeSat && (
+          <div className="border-t border-siapesq-border pt-3">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <p className="text-xs font-extrabold text-navy">{activeSat.label}</p>
+              <span className="rounded-full border border-siapesq-border bg-siapesq-surface px-1.5 py-0.5 text-[9px] text-siapesq-muted">
+                {activeSat.coverage}
+              </span>
+            </div>
+            {activeSat.legendGradient && (
+              <>
+                <div className="h-2.5 rounded-full" style={{ background: activeSat.legendGradient }} />
+                <div className="mt-1 flex justify-between text-[10px] text-siapesq-muted">
+                  <span>{activeSat.legendLeft}</span>
+                  <span>{activeSat.legendRight}</span>
+                </div>
+              </>
+            )}
+            <p className="mt-1 text-[9px] text-siapesq-muted/70">
+              {activeSat.source ?? 'NASA GIBS'}{date ? ` · ${date}` : ''}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 type SatelliteLayerKey = 'none' | 'truecolor' | 'sst' | 'chlorophyll' | 'ndvi' | 'landtemp'
 
@@ -85,8 +182,11 @@ interface GibsLayerDef {
   label: string
   description: string
   coverage: string
-  protocol: 'wmts' | 'wms'
+  protocol: 'tile' | 'wmts' | 'wms'
   layer: string
+  source?: string
+  url?: string
+  attribution?: string
   ext?: 'jpg' | 'png'
   legendGradient?: string
   legendLeft?: string
@@ -99,11 +199,13 @@ const GIBS_WMTS_BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best'
 const GIBS_LAYERS: Record<Exclude<SatelliteLayerKey, 'none'>, GibsLayerDef> = {
   truecolor: {
     label: 'Cor Real',
-    description: 'Imagem de satélite MODIS/Terra',
+    description: 'Imagem base de satelite continua',
     coverage: 'Global',
-    protocol: 'wmts',
-    layer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
-    ext: 'jpg',
+    protocol: 'tile',
+    layer: 'World_Imagery',
+    source: 'Esri World Imagery',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
   },
   ndvi: {
     label: 'Vegetação (NDVI)',
@@ -128,10 +230,10 @@ const GIBS_LAYERS: Record<Exclude<SatelliteLayerKey, 'none'>, GibsLayerDef> = {
   },
   chlorophyll: {
     label: 'Clorofila',
-    description: 'Concentração de clorofila-a (MODIS/Aqua)',
+    description: 'Concentração de clorofila-a (Aqua/MODIS L2)',
     coverage: 'Oceano',
     protocol: 'wms',
-    layer: 'MODIS_Aqua_Chlorophyll_A',
+    layer: 'MODIS_Aqua_L2_Chlorophyll_A',
     legendGradient: 'linear-gradient(to right, #440154, #31688e, #35b779, #fde725)',
     legendLeft: 'Baixa',
     legendRight: 'Alta',
@@ -169,12 +271,14 @@ const categoryFilters: { value: string; label: string }[] = [
 type MapMode = 'markers' | 'heatmap'
 
 export function MapPage() {
+  const navigate = useNavigate()
   const [allSpecies, setAllSpecies] = useState<Species[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('All')
   const [mapMode, setMapMode] = useState<MapMode>('markers')
   const [satelliteLayer, setSatelliteLayer] = useState<SatelliteLayerKey>('none')
   const [showSatMenu, setShowSatMenu] = useState(false)
+  const [createPoint, setCreatePoint] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     speciesService.getAll({ pageSize: 500 })
@@ -195,6 +299,18 @@ export function MapPage() {
 
   function renderSatelliteLayer() {
     if (!activeSat) return null
+    if (activeSat.protocol === 'tile') {
+      return (
+        <TileLayer
+          key={`${satelliteLayer}-tile`}
+          url={activeSat.url ?? ''}
+          attribution={activeSat.attribution ?? activeSat.source ?? activeSat.label}
+          opacity={1}
+          maxNativeZoom={19}
+        />
+      )
+    }
+
     if (activeSat.protocol === 'wmts') {
       return (
         <TileLayer
@@ -223,111 +339,128 @@ export function MapPage() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-4" style={{ height: 'calc(100vh - 3.5rem - 2.5rem)' }}>
+    <div className="w-full max-w-[1600px] mx-auto flex h-full min-h-0 flex-col gap-3 overflow-hidden sm:gap-4">
       {/* Header */}
-      <div className="flex items-start justify-between flex-shrink-0 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Mapa de Espécies</h1>
-          <p className="text-sm text-siapesq-muted mt-0.5">Visualização geográfica das espécies monitoradas</p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap justify-end">
-          {/* Modo do mapa */}
-          <div className="flex items-center bg-white border border-siapesq-border rounded-xl p-1 gap-1">
-            <button
-              onClick={() => setMapMode('markers')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                mapMode === 'markers' ? 'bg-navy text-white' : 'text-siapesq-muted hover:text-navy'
-              }`}
-            >
-              Marcadores
-            </button>
-            <button
-              onClick={() => setMapMode('heatmap')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                mapMode === 'heatmap' ? 'bg-navy text-white' : 'text-siapesq-muted hover:text-navy'
-              }`}
-            >
-              Mapa de Calor
-            </button>
+      <div className="flex flex-shrink-0 flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+          <div>
+            <p className="eyebrow mb-1">Monitoramento</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-navy leading-tight">Mapa de Espécies</h1>
+            <p className="hidden sm:block text-sm text-siapesq-muted mt-1">Visualização geográfica das espécies monitoradas</p>
           </div>
 
-          {/* Satélite NASA GIBS */}
-          <div className="relative">
-            <button
-              onClick={() => setShowSatMenu((v) => !v)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                satelliteLayer !== 'none'
-                  ? 'bg-teal text-white border-teal'
-                  : 'bg-white text-siapesq-muted border-siapesq-border hover:border-navy hover:text-navy'
-              }`}
-            >
-              <Layers size={13} />
-              {satelliteLayer !== 'none' ? GIBS_LAYERS[satelliteLayer].label : 'Satélite NASA'}
-            </button>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap overflow-visible pb-1 sm:pb-0">
+            {/* Modo do mapa */}
+            <div className="flex flex-shrink-0 items-center bg-white border border-siapesq-border rounded-full p-1 gap-1 shadow-card">
+              <button
+                onClick={() => setMapMode('markers')}
+                className={`min-h-9 px-3 sm:px-4 rounded-full text-xs font-bold transition-all ${
+                  mapMode === 'markers' ? 'bg-navy text-white' : 'text-siapesq-muted hover:text-navy'
+                }`}
+              >
+                Marcadores
+              </button>
+              <button
+                onClick={() => setMapMode('heatmap')}
+                className={`min-h-9 px-3 sm:px-4 rounded-full text-xs font-bold transition-all ${
+                  mapMode === 'heatmap' ? 'bg-navy text-white' : 'text-siapesq-muted hover:text-navy'
+                }`}
+              >
+                Mapa de Calor
+              </button>
+            </div>
 
-            {showSatMenu && (
-              <div className="absolute right-0 top-full mt-1 z-[2000] bg-white border border-siapesq-border rounded-xl shadow-card-hover py-1 min-w-[220px]">
-                <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-siapesq-muted uppercase tracking-wide">
-                  NASA GIBS · Dados de satélite
-                </p>
-                <button
-                  onClick={() => { setSatelliteLayer('none'); setShowSatMenu(false) }}
-                  className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
-                    satelliteLayer === 'none' ? 'text-navy bg-siapesq-surface/60' : 'text-siapesq-muted hover:text-navy hover:bg-siapesq-surface/40'
-                  }`}
+            {/* Satélite NASA GIBS */}
+            <div className="relative flex-shrink-0 overflow-visible">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setShowSatMenu((v) => !v)
+                }}
+                className={`flex min-h-10 flex-shrink-0 items-center gap-2 px-3 sm:px-4 rounded-full text-xs font-bold border transition-all shadow-card focus:outline-none focus:ring-2 focus:ring-teal/30 ${
+                  satelliteLayer !== 'none'
+                    ? 'bg-teal text-white border-teal'
+                    : 'bg-white text-siapesq-muted border-siapesq-border hover:border-navy hover:text-navy'
+                }`}
+              >
+                <Layers size={13} />
+                <span className="hidden sm:inline">{satelliteLayer !== 'none' ? GIBS_LAYERS[satelliteLayer].label : 'Satélite NASA'}</span>
+                <span className="sm:hidden">NASA</span>
+              </button>
+
+              {showSatMenu && (
+                <div
+                  className="absolute right-0 top-full mt-2 z-[3000] bg-white border border-siapesq-border rounded-xl shadow-card-hover py-1 min-w-[260px]"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  Sem sobreposição
-                </button>
-                <div className="h-px bg-siapesq-border my-1" />
-                {(Object.entries(GIBS_LAYERS) as [Exclude<SatelliteLayerKey, 'none'>, GibsLayerDef][]).map(([key, info]) => (
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-siapesq-muted uppercase tracking-wide">
+                    Camadas de satélite
+                  </p>
                   <button
-                    key={key}
-                    onClick={() => { setSatelliteLayer(key); setShowSatMenu(false) }}
-                    className={`w-full text-left px-4 py-2.5 transition-colors ${
-                      satelliteLayer === key ? 'bg-teal/10' : 'hover:bg-siapesq-surface/40'
+                    type="button"
+                    onClick={() => { setSatelliteLayer('none'); setShowSatMenu(false) }}
+                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                      satelliteLayer === 'none' ? 'text-navy bg-siapesq-surface/60' : 'text-siapesq-muted hover:text-navy hover:bg-siapesq-surface/40'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <p className={`text-xs font-semibold ${satelliteLayer === key ? 'text-teal' : 'text-siapesq-dark'}`}>
-                        {info.label}
-                      </p>
-                      <span className="text-[9px] text-siapesq-muted bg-siapesq-surface px-1.5 py-0.5 rounded-full border border-siapesq-border">
-                        {info.coverage}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-siapesq-muted mt-0.5">{info.description}</p>
+                    Sem sobreposição
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Filtro de categoria (só no modo marcadores) */}
-          {mapMode === 'markers' && categoryFilters.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => setActiveCategory(value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                activeCategory === value
-                  ? 'bg-navy text-white border-navy'
-                  : 'bg-white text-siapesq-muted border-siapesq-border hover:border-navy hover:text-navy'
-              }`}
-            >
-              {label}
-              {value !== 'All' && (
-                <span className="ml-1 opacity-60">
-                  ({allSpecies.filter((s) => s.category === value).length})
-                </span>
+                  <div className="h-px bg-siapesq-border my-1" />
+                  {(Object.entries(GIBS_LAYERS) as [Exclude<SatelliteLayerKey, 'none'>, GibsLayerDef][]).map(([key, info]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setSatelliteLayer(key); setShowSatMenu(false) }}
+                      className={`w-full text-left px-4 py-2.5 transition-colors ${
+                        satelliteLayer === key ? 'bg-teal/10' : 'hover:bg-siapesq-surface/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className={`text-xs font-semibold ${satelliteLayer === key ? 'text-teal' : 'text-siapesq-dark'}`}>
+                          {info.label}
+                        </p>
+                        <span className="text-[9px] text-siapesq-muted bg-siapesq-surface px-1.5 py-0.5 rounded-full border border-siapesq-border">
+                          {info.coverage}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-siapesq-muted mt-0.5">{info.description}</p>
+                    </button>
+                  ))}
+                </div>
               )}
-            </button>
-          ))}
+            </div>
+          </div>
         </div>
+
+        {/* Filtro de categoria — linha separada no mobile */}
+        {mapMode === 'markers' && (
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {categoryFilters.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setActiveCategory(value)}
+                className={`min-h-10 px-3 sm:px-4 rounded-full text-xs font-bold border transition-all whitespace-nowrap flex-shrink-0 ${
+                  activeCategory === value
+                    ? 'bg-navy text-white border-navy'
+                    : 'bg-white text-siapesq-muted border-siapesq-border hover:border-navy hover:text-navy'
+                }`}
+              >
+                {label}
+                {value !== 'All' && (
+                  <span className="ml-1 opacity-60">
+                    ({allSpecies.filter((s) => s.category === value).length})
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Mapa */}
       <div
-        className="flex-1 bg-white rounded-xl shadow-card border border-siapesq-border overflow-hidden relative min-h-0"
+        className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-siapesq-border bg-white shadow-card"
         onClick={() => showSatMenu && setShowSatMenu(false)}
       >
         {loading ? (
@@ -341,14 +474,13 @@ export function MapPage() {
           >
             {/* Base OSM — hidden when true-color satellite replaces it */}
             {satelliteLayer !== 'truecolor' && (
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <TileLayer attribution={BASE_TILE_ATTRIBUTION} url={BASE_TILE_URL} />
             )}
 
             {/* NASA GIBS overlay */}
             {renderSatelliteLayer()}
+            <MapResizeFix />
+            <MapCreateEvents onPick={(lat, lng) => setCreatePoint({ lat, lng })} />
 
             {mapMode === 'markers' && (
               <>
@@ -382,9 +514,9 @@ export function MapPage() {
 
         {/* Legenda — marcadores */}
         {!loading && mapMode === 'markers' && (
-          <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-xl shadow-card border border-siapesq-border px-4 py-3">
+          <div className="hidden">
             <p className="text-xs font-bold text-navy mb-2">Legenda</p>
-            <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 sm:flex sm:flex-col gap-x-3 gap-y-1.5">
               {Object.entries(markerColors).map(([cat, color]) => (
                 <div key={cat} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
@@ -397,9 +529,9 @@ export function MapPage() {
 
         {/* Legenda — heatmap */}
         {!loading && mapMode === 'heatmap' && (
-          <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-xl shadow-card border border-siapesq-border px-4 py-3">
+          <div className="hidden">
             <p className="text-xs font-bold text-navy mb-2">Densidade</p>
-            <div className="w-32 h-3 rounded-full" style={{ background: 'linear-gradient(to right, #000080, #0000FF, #00FFFF, #00FF00, #FFFF00, #FF8000, #FF0000)' }} />
+            <div className="w-32 h-3 rounded-full" style={{ background: HEATMAP_LEGEND }} />
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-siapesq-muted">Baixa</span>
               <span className="text-[10px] text-siapesq-muted">Alta</span>
@@ -409,7 +541,7 @@ export function MapPage() {
 
         {/* Legenda — satélite */}
         {!loading && activeSat && (
-          <div className="absolute bottom-4 right-4 z-[1000] bg-white rounded-xl shadow-card border border-siapesq-border px-4 py-3 max-w-[200px]">
+          <div className="hidden">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-bold text-navy">{activeSat.label}</p>
               <span className="text-[9px] text-siapesq-muted bg-siapesq-surface px-1.5 py-0.5 rounded-full border border-siapesq-border">
@@ -427,8 +559,62 @@ export function MapPage() {
               </>
             )}
             <p className="text-[9px] text-siapesq-muted/60 mt-2">
-              NASA GIBS · {activeSat.protocol === 'wms' ? wmsDate : wmtsDate}
+              {activeSat.source ?? 'NASA GIBS'}{activeSat.protocol === 'tile' ? '' : ` · ${activeSat.protocol === 'wms' ? wmsDate : wmtsDate}`}
             </p>
+          </div>
+        )}
+
+        {!loading && (
+          <MapInfoPanel
+            mode={mapMode}
+            activeSat={activeSat}
+            date={activeSat?.protocol === 'tile' ? '' : activeSat?.protocol === 'wms' ? wmsDate : wmtsDate}
+          />
+        )}
+
+        {!loading && createPoint && (
+          <div
+            className="absolute left-3 right-3 top-3 z-[1200] sm:left-auto sm:right-4 sm:top-4 sm:w-[320px] rounded-2xl border border-siapesq-border bg-white/95 p-4 shadow-card-hover backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-teal/10 text-teal">
+                  <MapPin size={19} />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-navy">Adicionar especie aqui?</p>
+                  <p className="mt-1 text-xs font-mono text-siapesq-muted">
+                    {createPoint.lat.toFixed(6)}, {createPoint.lng.toFixed(6)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreatePoint(null)}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-siapesq-muted hover:bg-siapesq-surface hover:text-navy"
+                aria-label="Fechar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCreatePoint(null)}
+                className="min-h-10 rounded-full px-4 text-sm font-bold text-siapesq-muted hover:bg-siapesq-surface hover:text-navy"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/species/new?lat=${createPoint.lat.toFixed(6)}&lng=${createPoint.lng.toFixed(6)}`)}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-navy px-4 text-sm font-bold text-white shadow-sm hover:bg-navy-mid"
+              >
+                <PlusCircle size={15} />
+                Adicionar
+              </button>
+            </div>
           </div>
         )}
       </div>

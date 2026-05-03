@@ -49,12 +49,12 @@ export function ProfilePage() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-navy">Meu Perfil</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-navy">Meu Perfil</h1>
         <p className="text-sm text-siapesq-muted mt-0.5">Gerencie suas informações pessoais</p>
       </div>
 
       {/* Avatar */}
-      <div className="bg-white rounded-xl shadow-card border border-siapesq-border p-8 mb-4 flex flex-col items-center gap-4">
+      <div className="bg-white rounded-xl shadow-card border border-siapesq-border p-5 sm:p-8 mb-4 flex flex-col items-center gap-4">
         <div className="relative">
           <div className="w-24 h-24 rounded-full bg-navy-mid flex items-center justify-center overflow-hidden border-4 border-siapesq-border">
             {avatar ? (
@@ -106,7 +106,7 @@ export function ProfilePage() {
             <p className="text-xs text-siapesq-muted">O e-mail não pode ser alterado.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-siapesq-surface rounded-xl px-4 py-3 border border-siapesq-border">
               <p className="text-xs text-siapesq-muted flex items-center gap-1 mb-1"><Shield size={11} /> Função</p>
               <p className="text-sm font-semibold text-navy capitalize">{payload?.role ?? 'Pesquisador'}</p>
