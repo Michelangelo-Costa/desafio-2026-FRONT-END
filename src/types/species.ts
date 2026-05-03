@@ -1,4 +1,5 @@
 export type SpeciesCategory = 'Bird' | 'Fish' | 'Plant' | 'Mammal' | 'Reptile' | 'Other'
+export type SpeciesStatus = 'Active' | 'Inactive' | 'Endangered' | 'Extinct'
 
 export interface Species {
   id: string
@@ -10,7 +11,7 @@ export interface Species {
   location: string
   observationDate: string
   notes?: string
-  status?: 'Stable Population' | 'Endangered' | 'Vulnerable' | 'Least Concern'
+  status?: SpeciesStatus
   uniqueIdentifier?: string
   abundance?: number
 }
