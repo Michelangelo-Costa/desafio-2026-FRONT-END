@@ -1,28 +1,25 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import type { SpeciesStats } from '../../types/species'
 
 interface Props { stats: SpeciesStats }
 
 const statusLabels: Record<string, string> = {
-  'Endangered': 'Em Perigo',
-  'Vulnerable': 'Vulnerável',
-  'Stable Population': 'Pop. Estável',
-  'Least Concern': 'Pouco Preocupante',
-  'Active': 'Ativo',
+  Active: 'Ativo',
+  Inactive: 'Inativo',
+  Endangered: 'Em perigo',
+  Extinct: 'Extinto',
 }
 
 const statusColors: Record<string, string> = {
-  'Endangered': '#EF4444',
-  'Vulnerable': '#F97316',
-  'Stable Population': '#00B4A6',
-  'Least Concern': '#8DC63F',
-  'Active': '#1B4F8A',
+  Active: '#1B4F8A',
+  Inactive: '#8899AA',
+  Endangered: '#EF4444',
+  Extinct: '#334155',
 }
 
 export function StatusChart({ stats }: Props) {
   if (!stats.byStatus) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-card border border-siapesq-border flex flex-col items-center justify-center min-h-[200px]">
+      <div className="app-card app-card-pad flex min-h-[220px] flex-col items-center justify-center">
         <p className="text-xs text-siapesq-muted">Aguardando dados do backend</p>
       </div>
     )
@@ -37,31 +34,33 @@ export function StatusChart({ stats }: Props) {
     }))
     .sort((a, b) => b.value - a.value)
 
+  const max = Math.max(...data.map((item) => item.value), 1)
+
   return (
-    <div className="bg-white rounded-xl p-6 shadow-card border border-siapesq-border">
-      <h2 className="font-bold text-navy text-sm mb-4">Status de Conservação</h2>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} layout="vertical" margin={{ left: 0, right: 16 }}>
-          <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fontSize: 11, fill: '#64748B' }}
-            tickLine={false}
-            axisLine={false}
-            width={110}
-          />
-          <Tooltip
-            formatter={(v: number) => [v, 'Espécies']}
-            contentStyle={{ borderRadius: 10, border: '1px solid #E2E8F0', fontSize: 12 }}
-          />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={24}>
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="app-card app-card-pad">
+      <div className="mb-5">
+        <p className="eyebrow mb-1">Conservacao</p>
+        <h2 className="section-title">Status de conservacao</h2>
+      </div>
+      <div className="space-y-4">
+        {data.map((item) => (
+          <div key={item.name}>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="truncate text-sm font-bold text-siapesq-dark">{item.name}</span>
+              </div>
+              <span className="text-sm font-extrabold text-navy">{item.value}</span>
+            </div>
+            <div className="h-3 rounded-full bg-siapesq-surface overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.max((item.value / max) * 100, 8)}%`, backgroundColor: item.color }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

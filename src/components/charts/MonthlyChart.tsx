@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { SpeciesStats } from '../../types/species'
 
 interface Props { stats: SpeciesStats }
@@ -12,7 +12,7 @@ const ptMonths: Record<string, string> = {
 export function MonthlyChart({ stats }: Props) {
   if (!stats.byMonth || stats.byMonth.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-card border border-siapesq-border flex flex-col items-center justify-center min-h-[200px]">
+      <div className="app-card app-card-pad flex min-h-[220px] flex-col items-center justify-center">
         <p className="text-xs text-siapesq-muted">Aguardando dados do backend</p>
       </div>
     )
@@ -24,34 +24,39 @@ export function MonthlyChart({ stats }: Props) {
   })
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-card border border-siapesq-border">
-      <h2 className="font-bold text-navy text-sm mb-4">Registros por Mês</h2>
-      <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-          <defs>
-            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00B4A6" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#00B4A6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} allowDecimals={false} />
-          <Tooltip
-            formatter={(v: number) => [v, 'Registros']}
-            contentStyle={{ borderRadius: 10, border: '1px solid #E2E8F0', fontSize: 12 }}
-          />
-          <Area
-            type="monotone"
-            dataKey="count"
-            stroke="#00B4A6"
-            strokeWidth={2.5}
-            fill="url(#colorCount)"
-            dot={{ fill: '#00B4A6', r: 3 }}
-            activeDot={{ r: 5 }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div className="app-card app-card-pad">
+      <div className="mb-4">
+        <p className="eyebrow mb-1">Atividade</p>
+        <h2 className="section-title">Registros por mes</h2>
+      </div>
+      <div className="h-[235px] sm:h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+            <defs>
+              <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#00B4A6" stopOpacity={0.24} />
+                <stop offset="95%" stopColor="#00B4A6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#EEF4FA" />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6B7F99' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#6B7F99' }} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip
+              formatter={(value) => [value ?? 0, 'Registros']}
+              contentStyle={{ borderRadius: 12, border: '1px solid #D6E4F0', fontSize: 12 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke="#00B4A6"
+              strokeWidth={3}
+              fill="url(#colorCount)"
+              dot={{ fill: '#00B4A6', r: 4, strokeWidth: 2, stroke: '#FFFFFF' }}
+              activeDot={{ r: 6 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
