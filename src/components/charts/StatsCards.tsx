@@ -1,4 +1,4 @@
-import { TrendingUp, Minus, PawPrint, Bird, Fish, Leaf } from 'lucide-react'
+import { Bird, Fish, Leaf, Minus, PawPrint, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { SpeciesStats } from '../../types/species'
 
@@ -9,9 +9,9 @@ interface StatsCardsProps {
 interface CardConfig {
   key: string
   label: string
+  helper: string
   icon: LucideIcon
-  iconBg: string
-  iconColor: string
+  gradient: string
   change: string
   trend: 'up' | 'stable'
 }
@@ -19,38 +19,38 @@ interface CardConfig {
 const cards: CardConfig[] = [
   {
     key: 'total',
-    label: 'TOTAL DE ESPÉCIES',
+    label: 'Total de especies',
+    helper: 'Base monitorada',
     icon: PawPrint,
-    iconBg: 'bg-navy/10',
-    iconColor: 'text-navy',
-    change: '+12 este mês',
+    gradient: 'from-navy via-navy-mid to-navy-light',
+    change: '+12 este mes',
     trend: 'up',
   },
   {
     key: 'Bird',
-    label: 'AVES',
+    label: 'Aves',
+    helper: 'Registros alados',
     icon: Bird,
-    iconBg: 'bg-teal/10',
-    iconColor: 'text-teal',
-    change: '+5 este mês',
+    gradient: 'from-teal to-teal-light',
+    change: '+5 este mes',
     trend: 'up',
   },
   {
     key: 'Fish',
-    label: 'PEIXES',
+    label: 'Peixes',
+    helper: 'Ambientes aquaticos',
     icon: Fish,
-    iconBg: 'bg-navy-mid/10',
-    iconColor: 'text-navy-mid',
-    change: 'Estável',
+    gradient: 'from-navy-mid to-[#2563A8]',
+    change: 'Estavel',
     trend: 'stable',
   },
   {
     key: 'Plant',
-    label: 'PLANTAS',
+    label: 'Plantas',
+    helper: 'Cobertura vegetal',
     icon: Leaf,
-    iconBg: 'bg-siapesq-green/10',
-    iconColor: 'text-siapesq-green',
-    change: '+7 este mês',
+    gradient: 'from-siapesq-green to-[#A8D957]',
+    change: '+7 este mes',
     trend: 'up',
   },
 ]
@@ -65,25 +65,31 @@ export function StatsCards({ stats }: StatsCardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {cards.map(({ key, label, icon: Icon, iconBg, iconColor, change, trend }) => (
-        <div key={key} className="bg-white rounded-xl p-5 shadow-card border border-siapesq-border">
-          <div className="flex items-start justify-between mb-4">
-            <p className="text-xs font-semibold text-siapesq-muted tracking-wider">{label}</p>
-            <div className={`w-9 h-9 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
-              <Icon size={18} className={iconColor} />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+      {cards.map(({ key, label, helper, icon: Icon, gradient, change, trend }) => (
+        <div key={key} className="app-card relative overflow-hidden p-4 sm:p-5 group hover:shadow-card-hover transition-shadow">
+          <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${gradient}`} />
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wide text-siapesq-muted leading-tight">
+                {label}
+              </p>
+              <p className="hidden sm:block text-xs text-siapesq-muted/80 mt-1">{helper}</p>
+            </div>
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+              <Icon size={19} className="text-white" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-navy mb-1.5">
+          <p className="text-3xl sm:text-4xl font-extrabold text-navy mb-2 leading-none">
             {values[key].toLocaleString('pt-BR')}
           </p>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 min-h-5">
             {trend === 'up' ? (
               <TrendingUp size={13} className="text-siapesq-green" />
             ) : (
               <Minus size={13} className="text-siapesq-muted" />
             )}
-            <span className={`text-xs font-medium ${trend === 'up' ? 'text-siapesq-green' : 'text-siapesq-muted'}`}>
+            <span className={`text-xs font-bold ${trend === 'up' ? 'text-siapesq-green' : 'text-siapesq-muted'}`}>
               {change}
             </span>
           </div>
