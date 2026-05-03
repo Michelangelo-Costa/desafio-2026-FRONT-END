@@ -15,13 +15,49 @@ body {
   background-color: #0D2B5E;
   color: #1A2E4A;
   -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   overflow: hidden;
+}
+
+::selection {
+  background: rgba(0, 180, 166, 0.22);
+}
+
+@layer components {
+  .app-card {
+    @apply bg-white rounded-2xl shadow-card border border-siapesq-border;
+  }
+
+  .app-card-pad {
+    @apply p-4 sm:p-6;
+  }
+
+  .section-title {
+    @apply text-base sm:text-lg font-extrabold text-navy leading-tight;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-extrabold uppercase tracking-[0.18em] text-teal;
+  }
+
+  .touch-pill {
+    @apply min-h-11 rounded-full px-4 text-sm font-bold transition-all;
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Dark mode ── */
@@ -53,3 +89,29 @@ body {
 .dark textarea::placeholder { color: #64748B; }
 
 .dark .hover\:bg-siapesq-surface\/70:hover { background-color: rgba(15,23,42,0.7); }
+
+/* ── Wave animations (mobile menu) ── */
+@keyframes wave {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-15px); }
+  100% { transform: translateX(0); }
+}
+@keyframes wave-slow {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+  100% { transform: translateX(0); }
+}
+@keyframes wave-line {
+  0%, 100% { d: path("M0,3 C4,1 8,5 12,3 C16,1 20,5 24,3"); }
+  50% { d: path("M0,3 C4,5 8,1 12,3 C16,5 20,1 24,3"); }
+}
+
+.animate-wave { animation: wave 3s ease-in-out infinite; }
+.animate-wave-slow { animation: wave-slow 4s ease-in-out infinite; }
+.group:hover .group-hover\:animate-wave-line { animation: wave-line 0.6s ease-in-out infinite; }
+.group:hover .group-hover\:animate-wave-line-delay { animation: wave-line 0.6s ease-in-out 0.15s infinite; }
+
+/* ── Mobile table scroll ── */
+.table-scroll-wrapper { -webkit-overflow-scrolling: touch; }
+.table-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+.table-scroll-wrapper::-webkit-scrollbar-thumb { background: rgba(13,43,94,0.2); border-radius: 4px; }
