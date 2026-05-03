@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { Sidebar } from '../components/layout/Sidebar'
 import { Header } from '../components/layout/Header'
@@ -14,12 +15,14 @@ import { Login } from '../pages/Login'
 import { ProfilePage } from '../pages/ProfilePage'
 
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <ProtectedRoute>
       <div className="flex w-full h-screen overflow-hidden">
-        <Sidebar />
+        <Sidebar mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Header />
+          <Header onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
           <PageWrapper>{children}</PageWrapper>
         </div>
       </div>
