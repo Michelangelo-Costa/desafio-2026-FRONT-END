@@ -1,9 +1,5 @@
-import { useState } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
-import { Sidebar } from '../components/layout/Sidebar'
-import { Header } from '../components/layout/Header'
-import { PageWrapper } from '../components/layout/PageWrapper'
-import { ProtectedRoute } from '../components/layout/ProtectedRoute'
+import { AppLayout } from '../components/layout/AppLayout'
 import { Dashboard } from '../pages/Dashboard'
 import { SpeciesList } from '../pages/SpeciesList'
 import { SpeciesDetail } from '../pages/SpeciesDetail'
@@ -12,28 +8,27 @@ import { MapPage } from '../pages/MapPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { NotFound } from '../pages/NotFound'
 import { Login } from '../pages/Login'
+import { Register } from '../pages/Register'
+import { ForgotPassword } from '../pages/ForgotPassword'
+import { ResetPassword } from '../pages/ResetPassword'
 import { ProfilePage } from '../pages/ProfilePage'
-
-function AppLayout({ children }: { children: React.ReactNode }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  return (
-    <ProtectedRoute>
-      <div className="flex w-full h-screen overflow-hidden">
-        <Sidebar mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Header onMenuToggle={() => setMobileMenuOpen((v) => !v)} />
-          <PageWrapper>{children}</PageWrapper>
-        </div>
-      </div>
-    </ProtectedRoute>
-  )
-}
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/register',
+    element: <Register />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '/',
