@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Activity, ArrowRight, Database, Download, Map, PawPrint, PlusCircle } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { useSpeciesStats } from '../hooks/useSpecies'
-import { StatsCards } from '../components/charts/StatsCards'
+import { StatsCards, type MonthlyChanges } from '../components/charts/StatsCards'
 import { CategoryChart } from '../components/charts/CategoryChart'
 import { CategoryDonut } from '../components/charts/CategoryDonut'
 import { StatusChart } from '../components/charts/StatusChart'
@@ -17,6 +17,7 @@ import type { Species } from '../types/species'
 export function Dashboard() {
   const { stats, loading } = useSpeciesStats()
   const [recentSpecies, setRecentSpecies] = useState<Species[]>([])
+  const [monthlyChanges, setMonthlyChanges] = useState<MonthlyChanges | undefined>()
   const [exporting, setExporting] = useState(false)
 
   async function handleExport() {
@@ -54,6 +55,21 @@ export function Dashboard() {
     speciesService.getAll({ page: 1, pageSize: 5 }).then((result) => {
       const list = Array.isArray(result) ? result : (result.data ?? [])
       setRecentSpecies(list)
+    })
+
+    speciesService.getAll({ pageSize: 9999 }).then((result) => {
+      const all = Array.isArray(result) ? result : (result.data ?? [])
+      const now = new Date()
+      const thisMonth = all.filter((s) => {
+        const d = new Date(s.observationDate)
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      })
+      setMonthlyChanges({
+        total: thisMonth.length,
+        Bird: thisMonth.filter((s) => s.category === 'Bird').length,
+        Fish: thisMonth.filter((s) => s.category === 'Fish').length,
+        Plant: thisMonth.filter((s) => s.category === 'Plant').length,
+      })
     })
   }, [])
 
@@ -124,7 +140,7 @@ export function Dashboard() {
 
       {stats && (
         <>
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} monthlyChanges={monthlyChanges} />
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
             <div className="xl:col-span-2">
