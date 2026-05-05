@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search, ChevronDown, LayoutList, Grid3X3, Plus,
   Pencil, Trash2, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useSpeciesList } from '../hooks/useSpecies'
+import { useUser } from '../contexts/user'
 import { useDebounce } from '../hooks/useDebounce'
 import { speciesService } from '../services/speciesService'
 import { Badge } from '../components/ui/Badge'
@@ -12,6 +13,7 @@ import { Button } from '../components/ui/Button'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatDate } from '../utils/formatDate'
 import { categoryLabels } from '../utils/categoryColors'
+import { canManageSpecies, getSpeciesAuthorLabel } from '../utils/speciesOwnership'
 import type { Species, SpeciesCategory } from '../types/species'
 
 const CATEGORIES: SpeciesCategory[] = ['Bird', 'Fish', 'Plant', 'Mammal', 'Reptile', 'Other']
@@ -21,17 +23,15 @@ export function SpeciesList() {
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const [category, setCategory] = useState('All')
 
-  useEffect(() => {
-    const q = searchParams.get('search')
-    if (q) setSearch(q)
-  }, [searchParams])
   const [page, setPage] = useState(1)
   const [view, setView] = useState<'table' | 'grid'>('table')
 
   const debouncedSearch = useDebounce(search, 300)
   const { species, total, totalPages, loading, refetch } = useSpeciesList(debouncedSearch, category, page)
+  const { user: currentUser } = useUser()
   const [deleteTarget, setDeleteTarget] = useState<Species | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const handleCategoryChange = (cat: string) => {
     setCategory(cat)
@@ -41,12 +41,13 @@ export function SpeciesList() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
+    setDeleteError('')
     try {
       await speciesService.delete(deleteTarget.id)
       setDeleteTarget(null)
       refetch()
-    } catch {
-      // silently fail
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Voce nao tem permissao para alterar este registro.')
     } finally {
       setDeleting(false)
     }
@@ -73,6 +74,12 @@ export function SpeciesList() {
             </button>
           </div>
         </div>
+      )}
+
+      {deleteError && (
+        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          {deleteError}
+        </p>
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -135,7 +142,7 @@ export function SpeciesList() {
       ) : species.length === 0 ? (
         <EstadoVazio />
       ) : view === 'table' ? (
-        <VisualizacaoTabela species={species} onDelete={setDeleteTarget} />
+        <VisualizacaoTabela species={species} currentUser={currentUser} onDelete={setDeleteTarget} />
       ) : (
         <VisualizacaoGrade species={species} />
       )}
@@ -180,11 +187,19 @@ export function SpeciesList() {
   )
 }
 
-function VisualizacaoTabela({ species, onDelete }: { species: Species[]; onDelete: (s: Species) => void }) {
+function VisualizacaoTabela({
+  species,
+  currentUser,
+  onDelete,
+}: {
+  species: Species[]
+  currentUser: ReturnType<typeof useUser>['user']
+  onDelete: (s: Species) => void
+}) {
   return (
     <div className="bg-white rounded-xl shadow-card border border-siapesq-border overflow-hidden">
       <div className="overflow-x-auto table-scroll-wrapper">
-        <table className="w-full min-w-[700px]">
+        <table className="w-full min-w-[840px]">
           <thead>
             <tr className="bg-navy">
               <th className="text-left px-4 sm:px-5 py-3.5 text-xs font-semibold text-white/80">Nome</th>
@@ -211,7 +226,12 @@ function VisualizacaoTabela({ species, onDelete }: { species: Species[]; onDelet
                 </td>
                 <td className="px-4 sm:px-5 py-3.5 text-sm text-siapesq-muted italic">{s.scientificName}</td>
                 <td className="px-4 sm:px-5 py-3.5"><Badge category={s.category} /></td>
-                <td className="px-4 sm:px-5 py-3.5 text-sm text-siapesq-dark">{s.location}</td>
+                <td className="px-4 sm:px-5 py-3.5 text-sm text-siapesq-dark">
+                  <span>{s.location}</span>
+                  <span className="mt-1 block text-[11px] font-medium text-siapesq-muted">
+                    Cadastrado por: {getSpeciesAuthorLabel(s)}
+                  </span>
+                </td>
                 <td className="px-4 sm:px-5 py-3.5 text-sm text-siapesq-muted whitespace-nowrap">{formatDate(s.observationDate)}</td>
                 <td className="px-4 sm:px-5 py-3.5">
                   <div className="flex items-center gap-1">
@@ -222,13 +242,15 @@ function VisualizacaoTabela({ species, onDelete }: { species: Species[]; onDelet
                     >
                       <Pencil size={14} />
                     </Link>
-                    <button
-                      onClick={() => onDelete(s)}
-                      className="p-1.5 rounded-lg text-siapesq-muted hover:text-red-500 hover:bg-red-50 transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {canManageSpecies(s, currentUser) && (
+                      <button
+                        onClick={() => onDelete(s)}
+                        className="p-1.5 rounded-lg text-siapesq-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -254,6 +276,7 @@ function VisualizacaoGrade({ species }: { species: Species[] }) {
           </div>
           <h3 className="font-bold text-navy text-sm mb-0.5">{s.commonName}</h3>
           <p className="text-xs text-siapesq-muted italic mb-3">{s.scientificName}</p>
+          <p className="mb-2 text-[11px] font-medium text-siapesq-muted">Cadastrado por: {getSpeciesAuthorLabel(s)}</p>
           <p className="text-xs text-siapesq-muted">{s.location} · {formatDate(s.observationDate)}</p>
         </Link>
       ))}

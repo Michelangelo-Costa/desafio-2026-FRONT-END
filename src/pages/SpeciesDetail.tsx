@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Info, Calendar, Tag, Hash, Pencil, Trash2, Save, X, 
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useSpeciesDetail } from '../hooks/useSpecies'
+import { useUser } from '../contexts/user'
 import { extractOtherCategory, stripOtherCategory, useSpeciesForm } from '../hooks/useSpeciesForm'
 import { speciesService } from '../services/speciesService'
 import { Badge } from '../components/ui/Badge'
@@ -12,6 +13,7 @@ import { Input } from '../components/ui/Input'
 import { PageSpinner } from '../components/ui/Spinner'
 import { formatDate } from '../utils/formatDate'
 import { categoryLabels } from '../utils/categoryColors'
+import { canManageSpecies, getSpeciesAuthorLabel } from '../utils/speciesOwnership'
 import type { SpeciesCategory } from '../types/species'
 
 const STATUS_OPTIONS = [
@@ -160,9 +162,11 @@ export function SpeciesDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { species, loading, error } = useSpeciesDetail(id!)
+  const { user: currentUser } = useUser()
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [permissionError, setPermissionError] = useState('')
 
   if (loading) return <PageSpinner />
 
@@ -175,21 +179,24 @@ export function SpeciesDetail() {
     )
   }
 
-  if (editing) {
-    return <EditMode species={species} onCancel={() => setEditing(false)} />
-  }
-
   const lat = Number(species.latitude) || 0
   const lon = Number(species.longitude) || 0
   const otherCategory = species.category === 'Other' ? extractOtherCategory(species.notes) : ''
   const statusClass = species.status ? (apiStatusColors[species.status] ?? 'border-teal text-teal bg-teal/10') : ''
+  const canManage = canManageSpecies(species, currentUser)
+
+  if (editing && canManage) {
+    return <EditMode species={species} onCancel={() => setEditing(false)} />
+  }
 
   async function handleDelete() {
+    setPermissionError('')
     setDeleting(true)
     try {
       await speciesService.delete(id!)
       navigate('/species')
-    } catch {
+    } catch (err) {
+      setPermissionError(err instanceof Error ? err.message : 'Voce nao tem permissao para alterar este registro.')
       setDeleting(false)
       setShowDeleteConfirm(false)
     }
@@ -219,24 +226,31 @@ export function SpeciesDetail() {
           <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1">{species.commonName}</h1>
           <p className="text-white/70 italic text-sm">{species.scientificName}</p>
         </div>
-        {/* Actions */}
-        <div className="relative z-10 flex items-center gap-2 flex-shrink-0 self-start mt-2 sm:mt-0 sm:self-end">
-          <button
-            onClick={() => setEditing(true)}
-            className="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors backdrop-blur-sm"
-            title="Editar"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-white transition-colors backdrop-blur-sm"
-            title="Excluir"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
+        {canManage && (
+          <div className="relative z-10 flex items-center gap-2 flex-shrink-0 self-start mt-2 sm:mt-0 sm:self-end">
+            <button
+              onClick={() => setEditing(true)}
+              className="p-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-colors backdrop-blur-sm"
+              title="Editar"
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-white transition-colors backdrop-blur-sm"
+              title="Excluir"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
       </div>
+
+      {permissionError && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          {permissionError}
+        </p>
+      )}
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (
@@ -314,6 +328,12 @@ export function SpeciesDetail() {
                 <Calendar size={10} /> Data de Registro
               </p>
               <p className="text-sm font-semibold text-navy">{formatDate(species.observationDate)}</p>
+            </div>
+            <div className="bg-siapesq-surface rounded-xl px-4 py-3.5 border border-siapesq-border">
+              <p className="text-xs font-semibold text-siapesq-muted uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Info size={10} /> Cadastro
+              </p>
+              <p className="text-sm font-semibold text-navy">{getSpeciesAuthorLabel(species)}</p>
             </div>
             {species.uniqueIdentifier && (
               <div className="bg-siapesq-surface rounded-xl px-4 py-3.5 border border-siapesq-border">
