@@ -1,6 +1,6 @@
 import { Moon, Sun, Globe, Bell, Database, Shield } from 'lucide-react'
-import { useTheme } from '../contexts/ThemeContext'
-import { useSettings } from '../contexts/SettingsContext'
+import { useTheme } from '../contexts/theme'
+import { useSettings } from '../contexts/settings'
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (

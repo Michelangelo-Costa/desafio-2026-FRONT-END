@@ -26,7 +26,9 @@ export function useSpeciesList(search: string, category: string, page: number) {
     }
   }, [search, category, page])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    void fetch()
+  }, [fetch])
 
   return { species, total, totalPages, loading, error, refetch: fetch }
 }
@@ -37,11 +39,26 @@ export function useSpeciesDetail(id: string) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    speciesService.getById(id)
-      .then(setSpecies)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Not found'))
-      .finally(() => setLoading(false))
+    let active = true
+
+    async function loadSpecies() {
+      setLoading(true)
+      setError(null)
+      try {
+        const result = await speciesService.getById(id)
+        if (active) setSpecies(result)
+      } catch (e) {
+        if (active) setError(e instanceof Error ? e.message : 'Not found')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadSpecies()
+
+    return () => {
+      active = false
+    }
   }, [id])
 
   return { species, loading, error }
@@ -52,7 +69,22 @@ export function useSpeciesStats() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    speciesService.getStats().then(setStats).finally(() => setLoading(false))
+    let active = true
+
+    async function loadStats() {
+      try {
+        const result = await speciesService.getStats()
+        if (active) setStats(result)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadStats()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   return { stats, loading }

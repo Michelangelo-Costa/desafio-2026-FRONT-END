@@ -2,7 +2,7 @@ import axios from 'axios'
 import { authService } from './authService'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, ''),
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 })
@@ -20,13 +20,16 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       authService.removeToken()
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login')
+      }
     }
     const details = error.response?.data
     const message =
       details?.message ||
       details?.error ||
       (Array.isArray(details?.errors) ? details.errors.map((item: unknown) => String(item)).join(', ') : '') ||
+      (error.response?.status === 403 ? 'Voce nao tem permissao para alterar este registro.' : '') ||
       error.message ||
       'Erro inesperado'
     return Promise.reject(new Error(message))

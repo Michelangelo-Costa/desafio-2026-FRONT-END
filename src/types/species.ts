@@ -1,6 +1,12 @@
 export type SpeciesCategory = 'Bird' | 'Fish' | 'Plant' | 'Mammal' | 'Reptile' | 'Other'
 export type SpeciesStatus = 'Active' | 'Inactive' | 'Endangered' | 'Extinct'
 
+export interface SpeciesAuthor {
+  id: string
+  email: string
+  name: string | null
+}
+
 export interface Species {
   id: string
   commonName: string
@@ -14,6 +20,8 @@ export interface Species {
   status?: SpeciesStatus
   uniqueIdentifier?: string
   abundance?: number
+  createdById?: string | null
+  createdBy?: SpeciesAuthor | null
 }
 
 export interface SpeciesStats {

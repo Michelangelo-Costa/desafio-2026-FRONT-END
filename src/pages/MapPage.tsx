@@ -12,7 +12,7 @@ import { PageSpinner } from '../components/ui/Spinner'
 const BASE_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const BASE_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: unknown })._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -38,6 +38,20 @@ const HEATMAP_GRADIENT = {
 }
 
 const HEATMAP_LEGEND = 'linear-gradient(to right, #D8F6F1, #5EEAD4, #14B8A6, #8DC63F, #FACC15, #EF4444)'
+
+type HeatLayerFactory = typeof L & {
+  heatLayer: (
+    latlngs: [number, number, number][],
+    options: L.LayerOptions & {
+      radius: number
+      blur: number
+      maxZoom: number
+      minOpacity: number
+      max: number
+      gradient: Record<number, string>
+    }
+  ) => L.Layer
+}
 
 function createIcon(category: SpeciesCategory) {
   const color = markerColors[category]
@@ -72,7 +86,7 @@ function HeatmapLayer({ species }: { species: Species[] }) {
         return [s.latitude, s.longitude, intensity] as [number, number, number]
       })
     if (points.length === 0) return
-    const heat = (L as any).heatLayer(points, {
+    const heat = (L as HeatLayerFactory).heatLayer(points, {
       radius: 26,
       blur: 20,
       maxZoom: 9,
@@ -510,58 +524,6 @@ export function MapPage() {
 
             {mapMode === 'heatmap' && <HeatmapLayer species={allSpecies} />}
           </MapContainer>
-        )}
-
-        {/* Legenda — marcadores */}
-        {!loading && mapMode === 'markers' && (
-          <div className="hidden">
-            <p className="text-xs font-bold text-navy mb-2">Legenda</p>
-            <div className="grid grid-cols-2 sm:flex sm:flex-col gap-x-3 gap-y-1.5">
-              {Object.entries(markerColors).map(([cat, color]) => (
-                <div key={cat} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                  <span className="text-xs text-siapesq-dark">{categoryLabels[cat as SpeciesCategory]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Legenda — heatmap */}
-        {!loading && mapMode === 'heatmap' && (
-          <div className="hidden">
-            <p className="text-xs font-bold text-navy mb-2">Densidade</p>
-            <div className="w-32 h-3 rounded-full" style={{ background: HEATMAP_LEGEND }} />
-            <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-siapesq-muted">Baixa</span>
-              <span className="text-[10px] text-siapesq-muted">Alta</span>
-            </div>
-          </div>
-        )}
-
-        {/* Legenda — satélite */}
-        {!loading && activeSat && (
-          <div className="hidden">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-bold text-navy">{activeSat.label}</p>
-              <span className="text-[9px] text-siapesq-muted bg-siapesq-surface px-1.5 py-0.5 rounded-full border border-siapesq-border">
-                {activeSat.coverage}
-              </span>
-            </div>
-            <p className="text-[10px] text-siapesq-muted mb-2 leading-tight">{activeSat.description}</p>
-            {activeSat.legendGradient && (
-              <>
-                <div className="w-full h-3 rounded-full" style={{ background: activeSat.legendGradient }} />
-                <div className="flex justify-between mt-1">
-                  <span className="text-[10px] text-siapesq-muted">{activeSat.legendLeft}</span>
-                  <span className="text-[10px] text-siapesq-muted">{activeSat.legendRight}</span>
-                </div>
-              </>
-            )}
-            <p className="text-[9px] text-siapesq-muted/60 mt-2">
-              {activeSat.source ?? 'NASA GIBS'}{activeSat.protocol === 'tile' ? '' : ` · ${activeSat.protocol === 'wms' ? wmsDate : wmtsDate}`}
-            </p>
-          </div>
         )}
 
         {!loading && (

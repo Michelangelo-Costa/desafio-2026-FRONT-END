@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Search, LogOut, Moon, Sun, User } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { authService } from '../../services/authService'
-import { useTheme } from '../../contexts/ThemeContext'
+import { useTheme } from '../../contexts/theme'
 
 interface HeaderProps {
   onMenuToggle: () => void

@@ -1,45 +1,16 @@
-import { createContext, useContext, useState } from 'react'
-
-interface Settings {
-  language: string
-  dateFormat: string
-  exportFormat: string
-  notifyEmail: boolean
-  notifyNew: boolean
-  notifyReport: boolean
-  compactView: boolean
-}
-
-interface SettingsContextType {
-  settings: Settings
-  update: <K extends keyof Settings>(key: K, value: Settings[K]) => void
-}
+import { useState } from 'react'
+import { SettingsContext, defaultSettings, type Settings } from './settings'
 
 const STORAGE_KEY = 'siapesq_settings'
-
-const defaults: Settings = {
-  language: 'pt-BR',
-  dateFormat: 'DD/MM/AAAA',
-  exportFormat: 'CSV',
-  notifyEmail: true,
-  notifyNew: true,
-  notifyReport: false,
-  compactView: false,
-}
 
 function load(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? { ...defaults, ...JSON.parse(raw) } : defaults
+    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings
   } catch {
-    return defaults
+    return defaultSettings
   }
 }
-
-const SettingsContext = createContext<SettingsContextType>({
-  settings: defaults,
-  update: () => {},
-})
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(load)
@@ -58,5 +29,3 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     </SettingsContext.Provider>
   )
 }
-
-export const useSettings = () => useContext(SettingsContext)

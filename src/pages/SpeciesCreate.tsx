@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -48,22 +48,7 @@ export function SpeciesCreate() {
   }, [hasValidCoordinates, latitude, longitude])
   const coordinateWarning = getCoordinateWarning(selectedPoint)
 
-  useEffect(() => {
-    const lat = Number(searchParams.get('lat'))
-    const lng = Number(searchParams.get('lng'))
-    if (!isUsableCoordinate(lat, lng)) return
-
-    updateCoordinates(lat, lng)
-  }, [searchParams, setValue])
-
-  function updateCoordinates(lat: number, lng: number) {
-    setDismissedCoordinateWarning(false)
-    setValue('latitude', Number(lat.toFixed(6)), { shouldDirty: true, shouldValidate: true })
-    setValue('longitude', Number(lng.toFixed(6)), { shouldDirty: true, shouldValidate: true })
-    fillLocationName(lat, lng)
-  }
-
-  async function fillLocationName(lat: number, lng: number) {
+  const fillLocationName = useCallback(async (lat: number, lng: number) => {
     const currentLocation = String(getValues('location') ?? '').trim()
     if (currentLocation && currentLocation !== lastAutoLocation) return
 
@@ -80,7 +65,22 @@ export function SpeciesCreate() {
     } finally {
       setResolvingLocation(false)
     }
-  }
+  }, [getValues, lastAutoLocation, setValue])
+
+  const updateCoordinates = useCallback((lat: number, lng: number) => {
+    setDismissedCoordinateWarning(false)
+    setValue('latitude', Number(lat.toFixed(6)), { shouldDirty: true, shouldValidate: true })
+    setValue('longitude', Number(lng.toFixed(6)), { shouldDirty: true, shouldValidate: true })
+    void fillLocationName(lat, lng)
+  }, [setValue, fillLocationName])
+
+  useEffect(() => {
+    const lat = Number(searchParams.get('lat'))
+    const lng = Number(searchParams.get('lng'))
+    if (!isUsableCoordinate(lat, lng)) return
+
+    updateCoordinates(lat, lng)
+  }, [searchParams, updateCoordinates])
 
   function useCurrentLocation() {
     setLocationError(null)

@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, PawPrint, PlusCircle, Map, Settings, User, X } from 'lucide-react'
+import logo from '../../assets/LOGO_Siapesq.png'
 
 function SidebarLink({
   to,
@@ -64,11 +65,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       <div className="px-6 py-5 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal to-siapesq-green flex items-center justify-center flex-shrink-0">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                <path d="M17 8C8 10 5.9 16.17 3.82 21c5-3 8.5-3.5 13-5 1.5-4-1.5-8-1-12z" />
-              </svg>
-            </div>
+            <img src={logo} alt="SIAPESQ" className="w-9 h-9 flex-shrink-0" />
             <div>
               <p className="text-white font-bold text-base leading-tight">SIAPESQ</p>
               <p className="text-white/50 text-xs">Gestor de Espécies</p>
