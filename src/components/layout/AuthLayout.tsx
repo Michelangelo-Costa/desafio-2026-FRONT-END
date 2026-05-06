@@ -19,7 +19,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         />
       </div>
 
-      <main className="flex flex-1 overflow-y-auto px-6 py-8 sm:px-10 lg:items-center lg:justify-center lg:w-[min(43vw,620px)] lg:flex-none lg:px-14 lg:py-10">
+      <main className="flex flex-1 justify-center overflow-y-auto px-6 py-8 sm:px-10 lg:items-center lg:w-[min(43vw,620px)] lg:flex-none lg:px-14 lg:py-10">
         <div className="w-full max-w-sm">
           <img
             src={logo}
