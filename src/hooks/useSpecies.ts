@@ -67,14 +67,18 @@ export function useSpeciesDetail(id: string) {
 export function useSpeciesStats() {
   const [stats, setStats] = useState<SpeciesStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
 
     async function loadStats() {
+      setError(null)
       try {
         const result = await speciesService.getStats()
         if (active) setStats(result)
+      } catch (e) {
+        if (active) setError(e instanceof Error ? e.message : 'Failed to load stats')
       } finally {
         if (active) setLoading(false)
       }
@@ -87,5 +91,5 @@ export function useSpeciesStats() {
     }
   }, [])
 
-  return { stats, loading }
+  return { stats, loading, error }
 }

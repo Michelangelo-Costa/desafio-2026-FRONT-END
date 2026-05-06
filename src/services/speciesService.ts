@@ -4,8 +4,15 @@ import type { PaginatedResponse } from '../types/api'
 import { getCached, setCached, invalidateCache } from '../utils/apiCache'
 
 const USE_MOCK = !import.meta.env.VITE_API_URL
+const pendingRequests = new Map<string, Promise<unknown>>()
+const RETRY_ATTEMPTS = 2
+const RETRY_DELAY_MS = 1_200
 
 async function simulateDelay(ms = 400) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
@@ -22,6 +29,37 @@ function unwrap<T>(res: { data: T | ApiEnvelope<T> }): T {
     return raw.data as T
   }
   return raw as T
+}
+
+function isRetryableError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  return message.includes('timeout') || message.includes('demorou') || message.includes('network error')
+}
+
+async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error
+      if (attempt === RETRY_ATTEMPTS || !isRetryableError(error)) break
+      await wait(RETRY_DELAY_MS * (attempt + 1))
+    }
+  }
+
+  throw lastError
+}
+
+function getPending<T>(key: string): Promise<T> | null {
+  return (pendingRequests.get(key) as Promise<T> | undefined) ?? null
+}
+
+function setPending<T>(key: string, request: Promise<T>) {
+  const trackedRequest = request.finally(() => pendingRequests.delete(key))
+  pendingRequests.set(key, trackedRequest)
+  return trackedRequest
 }
 
 export const speciesService = {
@@ -52,10 +90,15 @@ export const speciesService = {
     }
 
     const { default: api } = await import('./api')
-    const res = await api.get('/species', { params })
-    const result = res.data
-    setCached(cacheKey, result)
-    return result
+    const pending = getPending<SpeciesListResponse>(cacheKey)
+    if (pending) return pending
+
+    return setPending(cacheKey, withRetry(async () => {
+      const res = await api.get('/species', { params })
+      const result = res.data
+      setCached(cacheKey, result)
+      return result
+    }))
   },
 
   async getById(id: string): Promise<Species> {
@@ -135,9 +178,14 @@ export const speciesService = {
       return mockStats
     }
     const { default: api } = await import('./api')
-    const res = await api.get('/species/stats')
-    const result = unwrap(res)
-    setCached(cacheKey, result)
-    return result
+    const pending = getPending<SpeciesStats>(cacheKey)
+    if (pending) return pending
+
+    return setPending(cacheKey, withRetry(async () => {
+      const res = await api.get('/species/stats')
+      const result = unwrap(res)
+      setCached(cacheKey, result)
+      return result
+    }))
   },
 }

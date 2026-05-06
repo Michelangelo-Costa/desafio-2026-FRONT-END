@@ -293,14 +293,29 @@ export function MapPage() {
   const [satelliteLayer, setSatelliteLayer] = useState<SatelliteLayerKey>('none')
   const [showSatMenu, setShowSatMenu] = useState(false)
   const [createPoint, setCreatePoint] = useState<{ lat: number; lng: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    speciesService.getAll({ pageSize: 500 })
-      .then((result) => {
+    let active = true
+
+    async function loadSpecies() {
+      setError(null)
+      try {
+        const result = await speciesService.getAll({ pageSize: 500 })
         const list = Array.isArray(result) ? result : (result.data ?? [])
-        setAllSpecies(list)
-      })
-      .finally(() => setLoading(false))
+        if (active) setAllSpecies(list)
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Nao foi possivel carregar os registros.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadSpecies()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filtered = activeCategory === 'All'
@@ -524,6 +539,12 @@ export function MapPage() {
 
             {mapMode === 'heatmap' && <HeatmapLayer species={allSpecies} />}
           </MapContainer>
+        )}
+
+        {error && !loading && (
+          <div className="absolute left-3 right-3 top-3 z-[1200] rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 shadow-card sm:left-4 sm:right-auto sm:max-w-md">
+            {error}
+          </div>
         )}
 
         {!loading && (

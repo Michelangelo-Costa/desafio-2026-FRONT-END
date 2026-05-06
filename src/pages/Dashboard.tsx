@@ -14,14 +14,20 @@ import { formatDate } from '../utils/formatDate'
 import { speciesService } from '../services/speciesService'
 import type { Species } from '../types/species'
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Nao foi possivel carregar os dados agora.'
+}
+
 export function Dashboard() {
-  const { stats, loading } = useSpeciesStats()
+  const { stats, loading, error: statsError } = useSpeciesStats()
   const [recentSpecies, setRecentSpecies] = useState<Species[]>([])
   const [monthlyChanges, setMonthlyChanges] = useState<MonthlyChanges | undefined>()
   const [exporting, setExporting] = useState(false)
+  const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   async function handleExport() {
     setExporting(true)
+    setDashboardError(null)
     try {
       const result = await speciesService.getAll({ pageSize: 9999 })
       const list: Species[] = Array.isArray(result) ? result : (result.data ?? [])
@@ -46,34 +52,59 @@ export function Dashboard() {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Especies')
       XLSX.writeFile(wb, `siapesq-especies-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (error) {
+      setDashboardError(getErrorMessage(error))
     } finally {
       setExporting(false)
     }
   }
 
   useEffect(() => {
-    speciesService.getAll({ page: 1, pageSize: 5 }).then((result) => {
-      const list = Array.isArray(result) ? result : (result.data ?? [])
-      setRecentSpecies(list)
-    })
+    let active = true
 
-    speciesService.getAll({ pageSize: 9999 }).then((result) => {
-      const all = Array.isArray(result) ? result : (result.data ?? [])
-      const now = new Date()
-      const thisMonth = all.filter((s) => {
-        const d = new Date(s.observationDate)
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-      })
-      setMonthlyChanges({
-        total: thisMonth.length,
-        Bird: thisMonth.filter((s) => s.category === 'Bird').length,
-        Fish: thisMonth.filter((s) => s.category === 'Fish').length,
-        Plant: thisMonth.filter((s) => s.category === 'Plant').length,
-      })
-    })
+    async function loadRecentSpecies() {
+      try {
+        const result = await speciesService.getAll({ page: 1, pageSize: 5 })
+        const list = Array.isArray(result) ? result : (result.data ?? [])
+        if (active) setRecentSpecies(list)
+      } catch (error) {
+        if (active) setDashboardError(getErrorMessage(error))
+      }
+    }
+
+    async function loadMonthlyChanges() {
+      try {
+        const result = await speciesService.getAll({ pageSize: 9999 })
+        const all = Array.isArray(result) ? result : (result.data ?? [])
+        const now = new Date()
+        const thisMonth = all.filter((s) => {
+          const d = new Date(s.observationDate)
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+        })
+        if (active) {
+          setMonthlyChanges({
+            total: thisMonth.length,
+            Bird: thisMonth.filter((s) => s.category === 'Bird').length,
+            Fish: thisMonth.filter((s) => s.category === 'Fish').length,
+            Plant: thisMonth.filter((s) => s.category === 'Plant').length,
+          })
+        }
+      } catch (error) {
+        if (active) setDashboardError(getErrorMessage(error))
+      }
+    }
+
+    void loadRecentSpecies()
+    void loadMonthlyChanges()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   if (loading) return <PageSpinner />
+
+  const visibleError = statsError ?? dashboardError
 
   return (
     <div className="w-full max-w-[1440px] mx-auto">
@@ -137,6 +168,12 @@ export function Dashboard() {
           <DashboardAction to="/species/new" icon={PlusCircle} title="Adicionar" subtitle="Nova especie" tone="green" />
         </div>
       </section>
+
+      {visibleError && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          {visibleError}
+        </div>
+      )}
 
       {stats && (
         <>

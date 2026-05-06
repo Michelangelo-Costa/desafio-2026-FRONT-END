@@ -29,7 +29,7 @@ export function CategoryDonut({ stats }: Props) {
         <h2 className="section-title">Distribuicao</h2>
       </div>
       <div className="relative h-[235px] sm:h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 260 }}>
           <PieChart>
             <Pie
               data={data}

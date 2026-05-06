@@ -1,10 +1,17 @@
 import axios from 'axios'
 import { authService } from './authService'
 
+const DEFAULT_TIMEOUT_MS = 45_000
+
+function getApiTimeout() {
+  const timeout = Number(import.meta.env.VITE_API_TIMEOUT_MS)
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_TIMEOUT_MS
+}
+
 const api = axios.create({
   baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, ''),
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
+  timeout: getApiTimeout(),
 })
 
 api.interceptors.request.use((config) => {
@@ -30,6 +37,7 @@ api.interceptors.response.use(
       details?.error ||
       (Array.isArray(details?.errors) ? details.errors.map((item: unknown) => String(item)).join(', ') : '') ||
       (error.response?.status === 403 ? 'Voce nao tem permissao para alterar este registro.' : '') ||
+      (error.code === 'ECONNABORTED' ? 'A API demorou para responder. Tente novamente em instantes.' : '') ||
       error.message ||
       'Erro inesperado'
     return Promise.reject(new Error(message))

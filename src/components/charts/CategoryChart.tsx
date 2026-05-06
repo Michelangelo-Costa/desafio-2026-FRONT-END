@@ -58,7 +58,7 @@ export function CategoryChart({ stats }: ActivityChartProps) {
         </div>
       ) : (
         <div className="h-[280px] sm:h-[320px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 640, height: 320 }}>
             <AreaChart data={data} margin={{ top: 8, right: 10, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
