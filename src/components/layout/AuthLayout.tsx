@@ -5,11 +5,11 @@ import logo from '../../assets/LOGO_Siapesq.png'
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full w-full flex-col bg-white lg:flex-row">
-      <div className="relative h-56 w-full flex-shrink-0 overflow-hidden bg-navy sm:h-64 lg:hidden">
+      <div className="relative h-[clamp(13.5rem,34vw,18rem)] w-full flex-shrink-0 overflow-hidden bg-navy lg:hidden">
         <img
           src={loginHero}
-          alt="Apresentação visual do Arca em uso"
-          className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
+          alt="Apresentacao visual do Arca em uso"
+          className="absolute inset-0 h-full w-full object-cover object-[right_24%]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-navy/40 to-navy/10 pointer-events-none" />
         <img
@@ -30,11 +30,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <aside className="relative hidden flex-1 bg-navy lg:flex lg:items-center lg:justify-center">
+      <aside className="relative hidden flex-1 overflow-hidden bg-navy lg:block">
         <img
           src={loginHero}
-          alt="Apresentação visual do Arca em uso"
-          className="absolute inset-0 h-full w-full object-cover"
+          alt="Apresentacao visual do Arca em uso"
+          className="h-full w-full object-fill"
         />
       </aside>
     </div>
