@@ -1,134 +1,140 @@
-# 🎨 Desafio Técnico – Frontend (React)
+# ARCA App - Desafio Tecnico Frontend
 
-## 🎯 Objetivo
+Aplicacao web do ARCA, desenvolvida como solucao para o desafio tecnico de Desenvolvimento Frontend da SIAPESQ. Este repositorio e um fork do desafio original e foi evoluido para entregar a interface principal do produto: autenticacao, gestao de especies, dashboard, mapa interativo e empacotamento desktop com Electron.
 
-- Desenvolver uma interface web para visualização e gerenciamento de dados de espécies consumindo uma API.
-- **Período para execução:** 27 de abril até 7 de maio
+## Links da entrega
 
----
+| Item | Link |
+| --- | --- |
+| Repositorio frontend | https://github.com/Michelangelo-Costa/desafio-2026-FRONT-END |
+| Aplicacao publicada | https://app-arca.michelangelocosta.dev/#/login |
+| API Node integrada | https://github.com/Michelangelo-Costa/desafio-2026-API-NODE |
+| Site vitrine do ARCA | https://github.com/Michelangelo-Costa/arca-site |
+| Site publicado | https://arca-site.michelangelocosta.dev/ |
+| Desafio original | https://github.com/siapesq/desafio-2026-FRONT-END |
 
-## 🧠 Requisitos
+## Visao geral
 
-### 🔹 Tecnologias
+O ARCA e uma interface para monitoramento inteligente de especies. A aplicacao consome a API Node do projeto para autenticar usuarios, registrar especies e apresentar estatisticas para acompanhamento operacional.
 
-- ReactJS  
-- TypeScript  
-- Tailwind CSS  
+Principais areas da aplicacao:
 
----
+- Login, cadastro, recuperacao de senha, redefinicao e troca de senha.
+- Rotas protegidas e persistencia de sessao por token JWT.
+- Listagem de especies com busca, filtro por categoria, paginacao e alternancia entre tabela e grade.
+- Cadastro, edicao, detalhe e exclusao de especies com validacao via React Hook Form e Zod.
+- Controle de permissao por autor do registro, alinhado ao campo `createdById` retornado pela API.
+- Dashboard com cards, graficos por categoria, status, periodo e localidades.
+- Mapa interativo com Leaflet, marcadores, camadas visuais e modo heatmap.
+- Exportacao de registros em `.xlsx`.
+- Preparacao para desktop com Electron e `electron-builder`.
 
-## 🔹 Funcionalidades
+## Repositorios relacionados
 
-### 📍 Listagem de Espécies
+| Repositorio | Papel no ecossistema |
+| --- | --- |
+| [desafio-2026-FRONT-END](https://github.com/Michelangelo-Costa/desafio-2026-FRONT-END) | App web e base do app desktop ARCA. |
+| [desafio-2026-API-NODE](https://github.com/Michelangelo-Costa/desafio-2026-API-NODE) | Backend Express/Prisma responsavel por auth, especies, estatisticas e integracao externa. |
+| [arca-site](https://github.com/Michelangelo-Costa/arca-site) | Site publico de apresentacao do ARCA, com chamada para download do instalador. |
 
-- Exibir espécies em tabela ou cards  
-- Filtro por categoria  
-- Busca por nome  
+## Stack
 
----
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Axios
+- React Hook Form + Zod
+- Recharts
+- Leaflet + React Leaflet + leaflet.heat
+- XLSX
+- Electron + electron-builder
 
-### 📍 Visualização de Dados
+## Como executar localmente
 
-- Exibir estatísticas (ex: gráfico por categoria)  
-- Pode utilizar bibliotecas como Chart.js ou Recharts  
+Requisitos:
 
----
+- Node.js 20 ou superior
+- npm
+- API Node rodando localmente ou URL de API publicada
 
-### 📍 Cadastro de Espécies
+Instale as dependencias:
 
-- Formulário com validação  
-- Integração com API  
+```bash
+npm install
+```
 
----
+Configure as variaveis de ambiente:
 
-### 📍 UI/UX
+```bash
+cp .env.example .env
+```
 
-- Layout responsivo  
-- Uso de Tailwind CSS  
-- Organização visual consistente  
+Exemplo de `.env`:
 
----
+```env
+VITE_API_URL=http://localhost:3000
+```
 
-### 📍 Performance e Boas Práticas
+Inicie em desenvolvimento:
 
-- Componentização adequada  
-- Uso correto de hooks  
-- Evitar re-renderizações desnecessárias  
+```bash
+npm run dev
+```
 
----
+O Vite abre a aplicacao em `http://localhost:5173`.
 
-### 📍 Diferencial (Opcional)
+## Integracao com a API
 
-- Empacotar a aplicação como desktop utilizando Electron  
+O frontend espera a API do repositorio [desafio-2026-API-NODE](https://github.com/Michelangelo-Costa/desafio-2026-API-NODE). As chamadas principais usam os grupos:
 
----
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
+- `POST /auth/change-password`
+- `GET /species`
+- `GET /species/stats`
+- `GET /species/:id`
+- `POST /species`
+- `PUT /species/:id`
+- `DELETE /species/:id`
 
-## 📦 Entregáveis
+Para rodar o fluxo completo localmente, suba a API antes do front e aponte `VITE_API_URL` para ela.
 
-- Repositório no GitHub  
-- Deploy da aplicação (Vercel, Netlify ou similar)  
-- README com instruções de execução  
+## Scripts
 
----
+```bash
+npm run dev          # desenvolvimento web
+npm run build        # build de producao
+npm run preview      # preview local do build
+npm run lint         # analise com ESLint
+npm run desktop:dev  # build web e abre no Electron
+npm run desktop:pack # empacota em modo diretorio
+npm run desktop:dist # gera instalador desktop
+```
 
-## 🧪 Critérios de Avaliação
+## Build
 
-| Critério                         | Peso |
-|--------------------------------|------|
-| Estrutura e organização         | 20% |
-| UI/UX e responsividade         | 20% |
-| Funcionalidades implementadas   | 20% |
-| Integração com API              | 15% |
-| Boas práticas (React + TS)      | 15% |
-| Performance                     | 5%  |
-| Diferenciais (Electron, etc.)   | 5%  |
+```bash
+npm run build
+```
 
----
+O resultado web fica em `dist/`.
 
-## ⭐ Desafio Extra (Opcional)
+Para gerar o instalador Windows:
 
-### 🎯 Objetivo
+```bash
+npm run desktop:dist
+```
 
-Demonstrar capacidade analítica e diferencial técnico.
+Os artefatos desktop ficam em `release/`.
 
----
+## Observacoes para avaliacao
 
-### 📊 Análise de Dados
-
-Implementar visualizações adicionais como:
-
-- Espécies mais registradas  
-- Distribuição por categoria  
-- Análise geográfica (mapas)  
-
----
-
-### 🔹 Sugestões de ferramentas
-
-- Chart.js / Recharts  
-- Leaflet / Google Maps  
-
----
-
-## 🧪 Avaliação Extra
-
-| Critério          | Peso |
-|------------------|------|
-| Criatividade      | 40% |
-| Clareza dos dados | 30% |
-| Qualidade técnica | 30% |
-
----
-
-## ⚠️ Observações
-
-- O desafio **não precisa estar 100% completo** para ser avaliado  
-- O foco principal será:
-  - Organização do código  
-  - Raciocínio técnico  
-  - Boas práticas  
-- Diferenciais são opcionais, mas valorizados
-
-## 👤 Em caso de dúvidas entre em contato com:
-* Theodor: 55 53 991469520 (Whatsapp)
-* Email: siapesq@gmail.com
+- O repositorio foi mantido como fork do desafio para preservar rastreabilidade.
+- A aplicacao publicada esta em `https://app-arca.michelangelocosta.dev/#/login`.
+- O backend possui README proprio e documenta variaveis, rotas, Prisma, Swagger e execucao local.
+- O site vitrine possui README proprio e conecta o produto ao download do instalador.
