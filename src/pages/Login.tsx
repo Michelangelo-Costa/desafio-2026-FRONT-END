@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertCircle, ArrowRight, CheckCircle, Lock, Mail } from 'lucide-react'
+import { AlertCircle, ArrowRight, CheckCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { AuthLayout } from '../components/layout/AuthLayout'
 import { Button } from '../components/ui/Button'
 import { authService } from '../services/authService'
@@ -12,6 +12,7 @@ export function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -60,13 +61,21 @@ export function Login() {
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-siapesq-muted" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Minimo de 8 caracteres"
               required
-              className="w-full rounded-xl border border-siapesq-border py-2.5 pl-9 pr-4 text-sm placeholder:text-siapesq-muted transition-all focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
+              className="w-full rounded-xl border border-siapesq-border py-2.5 pl-9 pr-11 text-sm placeholder:text-siapesq-muted transition-all focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-siapesq-muted transition-colors hover:bg-siapesq-surface hover:text-navy focus:outline-none focus:ring-2 focus:ring-teal/20"
+              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
 

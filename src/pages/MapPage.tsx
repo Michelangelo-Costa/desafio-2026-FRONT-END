@@ -130,13 +130,19 @@ function MapInfoPanel({
   mode,
   activeSat,
   date,
+  floating = true,
 }: {
   mode: MapMode
   activeSat: GibsLayerDef | null
   date: string
+  floating?: boolean
 }) {
+  const panelClass = floating
+    ? 'absolute inset-x-3 bottom-4 z-[1000] hidden rounded-2xl border border-siapesq-border bg-white/95 p-3 shadow-card backdrop-blur sm:left-4 sm:right-auto sm:block sm:w-[430px] sm:p-4'
+    : 'rounded-2xl border border-siapesq-border bg-white/95 p-3 shadow-card backdrop-blur sm:hidden'
+
   return (
-    <div className="absolute inset-x-3 bottom-3 z-[1000] rounded-2xl border border-siapesq-border bg-white/95 p-3 shadow-card backdrop-blur sm:left-4 sm:right-auto sm:w-[430px] sm:p-4">
+    <div className={panelClass}>
       <div className="flex flex-col gap-3">
         <div className="min-w-0">
           {mode === 'heatmap' ? (
@@ -368,7 +374,7 @@ export function MapPage() {
   }
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto flex h-full min-h-0 flex-col gap-3 overflow-hidden sm:gap-4">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 pb-6 sm:gap-4 lg:h-full lg:min-h-0 lg:overflow-hidden lg:pb-0">
       {/* Header */}
       <div className="flex flex-shrink-0 flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
@@ -489,7 +495,7 @@ export function MapPage() {
 
       {/* Mapa */}
       <div
-        className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-siapesq-border bg-white shadow-card"
+        className="relative h-[62dvh] min-h-[430px] flex-none overflow-hidden rounded-2xl border border-siapesq-border bg-white shadow-card lg:h-auto lg:min-h-0 lg:flex-1"
         onClick={() => showSatMenu && setShowSatMenu(false)}
       >
         {loading ? (
@@ -601,6 +607,15 @@ export function MapPage() {
           </div>
         )}
       </div>
+
+      {!loading && (
+        <MapInfoPanel
+          mode={mapMode}
+          activeSat={activeSat}
+          date={activeSat?.protocol === 'tile' ? '' : activeSat?.protocol === 'wms' ? wmsDate : wmtsDate}
+          floating={false}
+        />
+      )}
     </div>
   )
 }

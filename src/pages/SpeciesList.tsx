@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search, ChevronDown, LayoutList, Grid3X3, Plus,
-  Pencil, Trash2, ChevronLeft, ChevronRight,
+  Pencil, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle,
 } from 'lucide-react'
 import { useSpeciesList } from '../hooks/useSpecies'
 import { useUser } from '../contexts/user'
@@ -30,6 +30,7 @@ export function SpeciesList() {
   const { species, total, totalPages, loading, refetch } = useSpeciesList(debouncedSearch, category, page)
   const { user: currentUser } = useUser()
   const [deleteTarget, setDeleteTarget] = useState<Species | null>(null)
+  const [blockedDeleteTarget, setBlockedDeleteTarget] = useState<Species | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
@@ -57,23 +58,79 @@ export function SpeciesList() {
     <div className="w-full">
       {/* Delete confirmation */}
       {deleteTarget && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[1990] bg-navy/45 backdrop-blur-sm"
+            aria-label="Fechar modal de exclusao"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="fixed inset-x-4 top-1/2 z-[2000] mx-auto max-w-md -translate-y-1/2 rounded-2xl border border-red-200 bg-white p-5 shadow-card-hover sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600">
+              <AlertTriangle size={19} />
+            </span>
+            <div>
             <p className="text-sm font-semibold text-red-700">Excluir "{deleteTarget.commonName}"?</p>
             <p className="text-xs text-red-500 mt-0.5">Essa ação remove do banco de dados e não pode ser desfeita.</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-siapesq-muted transition-colors hover:bg-siapesq-surface hover:text-navy"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-red-500 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
             >
               {deleting && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               Excluir
             </button>
           </div>
-        </div>
+          </div>
+        </>
+      )}
+
+      {blockedDeleteTarget && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[1990] bg-navy/45 backdrop-blur-sm"
+            aria-label="Fechar modal de permissao"
+            onClick={() => setBlockedDeleteTarget(null)}
+          />
+          <div className="fixed inset-x-4 top-1/2 z-[2000] mx-auto max-w-md -translate-y-1/2 rounded-2xl border border-amber-200 bg-white p-5 shadow-card-hover sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700">
+              <AlertTriangle size={19} />
+            </span>
+            <div>
+            <p className="text-sm font-semibold text-amber-800">Voce nao pode excluir "{blockedDeleteTarget.commonName}"</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Esta especie foi cadastrada por {getSpeciesAuthorLabel(blockedDeleteTarget)}. Apenas quem cadastrou o registro pode apaga-lo.
+            </p>
+          </div>
+            <button
+              type="button"
+              onClick={() => setBlockedDeleteTarget(null)}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-siapesq-muted transition-colors hover:bg-siapesq-surface hover:text-navy"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setBlockedDeleteTarget(null)}>Entendi</Button>
+          </div>
+          </div>
+        </>
       )}
 
       {deleteError && (
@@ -142,7 +199,12 @@ export function SpeciesList() {
       ) : species.length === 0 ? (
         <EstadoVazio />
       ) : view === 'table' ? (
-        <VisualizacaoTabela species={species} currentUser={currentUser} onDelete={setDeleteTarget} />
+        <VisualizacaoTabela
+          species={species}
+          currentUser={currentUser}
+          onDelete={setDeleteTarget}
+          onBlockedDelete={setBlockedDeleteTarget}
+        />
       ) : (
         <VisualizacaoGrade species={species} />
       )}
@@ -191,10 +253,12 @@ function VisualizacaoTabela({
   species,
   currentUser,
   onDelete,
+  onBlockedDelete,
 }: {
   species: Species[]
   currentUser: ReturnType<typeof useUser>['user']
   onDelete: (s: Species) => void
+  onBlockedDelete: (s: Species) => void
 }) {
   return (
     <div className="bg-white rounded-xl shadow-card border border-siapesq-border overflow-hidden">
@@ -242,15 +306,13 @@ function VisualizacaoTabela({
                     >
                       <Pencil size={14} />
                     </Link>
-                    {canManageSpecies(s, currentUser) && (
-                      <button
-                        onClick={() => onDelete(s)}
-                        className="p-1.5 rounded-lg text-siapesq-muted hover:text-red-500 hover:bg-red-50 transition-colors"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => canManageSpecies(s, currentUser) ? onDelete(s) : onBlockedDelete(s)}
+                      className="p-1.5 rounded-lg text-siapesq-muted hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </td>
               </tr>
